@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-seed-metadata-catalog
+      author: retreat
+      changes:
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: source }
+              - column: { name: value, value: schedule }
+              - column: { name: description, value: "Расписание ретрита" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: source }
+              - column: { name: value, value: speakers }
+              - column: { name: description, value: "Спикеры" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: source }
+              - column: { name: value, value: location }
+              - column: { name: description, value: "Локация и логистика" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: source }
+              - column: { name: value, value: faq }
+              - column: { name: description, value: "FAQ и правила" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: topic }
+              - column: { name: value, value: yoga }
+              - column: { name: description, value: "Йога" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: topic }
+              - column: { name: value, value: meditation }
+              - column: { name: description, value: "Медитация" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: topic }
+              - column: { name: value, value: workshop }
+              - column: { name: description, value: "Воркшопы" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: topic }
+              - column: { name: value, value: logistics }
+              - column: { name: description, value: "Логистика" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: topic }
+              - column: { name: value, value: registration }
+              - column: { name: description, value: "Регистрация" }
+        - insert:
+            tableName: metadata_catalog
+            columns:
+              - column: { name: field_name, value: topic }
+              - column: { name: value, value: rules }
+              - column: { name: description, value: "Правила ретрита" }

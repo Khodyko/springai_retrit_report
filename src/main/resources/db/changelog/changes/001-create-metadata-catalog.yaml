@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-metadata-catalog
+      author: retreat
+      changes:
+        - createTable:
+            tableName: metadata_catalog
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: field_name
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: value
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+        - addUniqueConstraint:
+            tableName: metadata_catalog
+            columnNames: field_name, value
+            constraintName: uk_metadata_catalog_field_value
