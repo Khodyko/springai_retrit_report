@@ -1,0 +1,230 @@
+# Spring AI Retrit — live demo (IntelliJ HTTP Client)
+# Откройте этот файл в IntelliJ IDEA: слева от каждого запроса — ▶ Run Request.
+# Перед запуском: docker compose up -d && mvn spring-boot:run
+
+@baseUrl = http://localhost:8080
+
+###############################################################################
+# Блок 1. Введение — проверка без RAG
+###############################################################################
+
+### Блок 1: приветствие без RAG-advisor
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Привет, кто ты?",
+  "rag": false
+}
+
+###############################################################################
+# Блок 2. RAG — Loader и базовый поиск
+###############################################################################
+
+### Блок 2: каталог searchable metadata (Liquibase)
+GET {{baseUrl}}/api/metadata/searchable
+
+### Блок 2: текущий порог similarity из application.yml
+GET {{baseUrl}}/api/admin/search-config
+
+### Блок 2: загрузить документы + metadata чанков в pgvector
+POST {{baseUrl}}/api/admin/load
+
+### Блок 2: RAG-вопрос про ретрит (порог по умолчанию — высокий)
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Во сколько йога?"
+}
+
+### Блок 2: вопрос не про ретрит — высокий порог, контекст не попадает
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Что такое SOLID?"
+}
+
+###############################################################################
+# Блок 2b. Настройка точности поиска
+###############################################################################
+
+### Блок 2b: понизить порог similarity (демо «freud»)
+PUT {{baseUrl}}/api/admin/search-config
+Content-Type: application/json
+
+{
+  "similarityThreshold": 0.35,
+  "topK": 8
+}
+
+### Блок 2b: тот же off-topic вопрос — низкий порог пропускает слабый контекст
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Что такое SOLID?"
+}
+
+### Блок 2b: вернуть строгий порог
+PUT {{baseUrl}}/api/admin/search-config
+Content-Type: application/json
+
+{
+  "similarityThreshold": 0.78,
+  "topK": 4
+}
+
+### Блок 2b: off-topic снова — честный отказ без галлюцинаций
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Что такое SOLID?"
+}
+
+###############################################################################
+# Блок 3. Жизненный цикл запроса (advisors)
+###############################################################################
+
+### Блок 3: вопрос про ретрит — смотреть augmented prompt в логах
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Кто ведёт медитацию?"
+}
+
+### Блок 3: ещё один запрос — смотреть цепочку advisors в логах
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Где завтрак?"
+}
+
+###############################################################################
+# Блок 4. Tools — поиск по metadata через ИИ
+###############################################################################
+
+### Блок 4: каталог допустимых metadata
+GET {{baseUrl}}/api/metadata/searchable
+
+### Блок 4: ИИ выберет source=speakers, topic=yoga
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "message": "Кто ведёт йогу?"
+}
+
+### Блок 4: ИИ выберет source=schedule, topic=yoga
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "message": "Во сколько йога?"
+}
+
+### Блок 4: ИИ выберет source=location
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "message": "Как добраться?"
+}
+
+### Блок 4: не про ретрит — tool не вызывается
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "message": "Что такое SOLID?"
+}
+
+###############################################################################
+# Блок 5. История сообщений (PostgreSQL, по user id)
+###############################################################################
+
+### Блок 5: первый вопрос пользователя alice
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+X-User-Id: alice
+
+{
+  "message": "Кто ведёт йогу?"
+}
+
+### Блок 5: уточнение alice — история из Postgres по X-User-Id
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+X-User-Id: alice
+
+{
+  "message": "А во сколько её сессия?"
+}
+
+### Блок 5: bob — отдельная история, контекст alice недоступен
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+X-User-Id: bob
+
+{
+  "message": "А во сколько её сессия?"
+}
+
+###############################################################################
+# Блок 6 / 7. Кейсы улучшения качества поиска
+###############################################################################
+
+### Кейс A: увеличить topK — больше контекста, риск шума
+PUT {{baseUrl}}/api/admin/search-config
+Content-Type: application/json
+
+{
+  "similarityThreshold": 0.78,
+  "topK": 12
+}
+
+### Кейс A: запрос с увеличенным topK
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Расскажи про все утренние активности"
+}
+
+### Кейс B: уменьшить topK — точнее, но можно потерять детали
+PUT {{baseUrl}}/api/admin/search-config
+Content-Type: application/json
+
+{
+  "similarityThreshold": 0.78,
+  "topK": 2
+}
+
+### Кейс B: запрос с уменьшенным topK
+POST {{baseUrl}}/api/chat
+Content-Type: application/json
+
+{
+  "message": "Расскажи про все утренние активности"
+}
+
+### Кейс C: строгий порог + metadata через agent
+PUT {{baseUrl}}/api/admin/search-config
+Content-Type: application/json
+
+{
+  "similarityThreshold": 0.80,
+  "topK": 4
+}
+
+### Кейс C: вопрос про правила ретрита через agent
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "message": "Какие правила на ретрите про телефоны?"
+}

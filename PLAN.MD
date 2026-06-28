@@ -3,7 +3,7 @@
 ## Контекст
 
 - Репозиторий `spring_ai_retrit` — демо-проект для доклада по Spring AI.
-- Стек: **Spring Boot 3.4+**, **Spring AI 1.1.x**, **OpenAI**, **PostgreSQL + pgvector** (в Docker), **Liquibase** (схема + seed каталога metadata + настройки поиска).
+- Стек: **Java 25**, **Spring Boot 3.5+**, **Spring AI 1.1.x**, **OpenAI**, **PostgreSQL + pgvector** (в Docker), **Liquibase** (схема + seed каталога metadata + настройки поиска).
 - **Инфраструктура БД**: PostgreSQL **только в контейнере** (`docker compose`); локальная установка Postgres не требуется. Spring Boot подключается к `localhost:5432` (проброс порта из контейнера).
 - Формат: **~60 мин** — полный разбор всех тем + live demo.
 - **Взаимодействие с приложением**: только **HTTP-запросы** (REST API). Никакого UI, psql, CommandLineRunner на сцене. Доступ к БД на докладе — только через приложение (не заходим в контейнер).
