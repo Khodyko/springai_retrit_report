@@ -1,39 +1,45 @@
 package com.example.retreat.service;
 
+import com.example.retreat.advisor.LoggingAdvisor;
+import com.example.retreat.config.RetreatConfig;
 import com.example.retreat.dto.ChatResponse;
 import com.example.retreat.dto.SearchConfigDto;
 import com.example.retreat.rag.SearchConfigService;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 /**
- * RAG-чат: QuestionAnswerAdvisor + настройки из application.yml.
+ * RAG-чат: advisors и system prompt подключаются в методах сервиса.
  */
 @Service
 public class RagChatService {
 
     private final ChatClient chatClient;
-    private final ChatClient simpleChatClient;
+    private final ChatMemory chatMemory;
+    private final LoggingAdvisor loggingAdvisor;
     private final VectorStore vectorStore;
     private final SearchConfigService searchConfigService;
 
     /**
-     * @param chatClient          основной ChatClient с памятью и advisors
-     * @param simpleChatClient    ChatClient без RAG (блок 1)
+     * @param chatClient          базовый ChatClient
+     * @param chatMemory          память диалога
+     * @param loggingAdvisor      логирование prompt
      * @param vectorStore         pgvector store
      * @param searchConfigService настройки similarity
      */
     public RagChatService(ChatClient chatClient,
-                          @Qualifier("simpleChatClient") ChatClient simpleChatClient,
+                          ChatMemory chatMemory,
+                          LoggingAdvisor loggingAdvisor,
                           VectorStore vectorStore,
                           SearchConfigService searchConfigService) {
         this.chatClient = chatClient;
-        this.simpleChatClient = simpleChatClient;
+        this.chatMemory = chatMemory;
+        this.loggingAdvisor = loggingAdvisor;
         this.vectorStore = vectorStore;
         this.searchConfigService = searchConfigService;
     }
@@ -43,14 +49,34 @@ public class RagChatService {
      *
      * @param message текст вопроса
      * @param useRag  включить RAG-advisor
-     * @param userId  идентификатор пользователя для памяти (может быть null)
+     * @param userId  X-User-Id для памяти диалога
      * @return ответ
      */
     public ChatResponse chat(String message, boolean useRag, String userId) {
         if (!useRag) {
-            return new ChatResponse(simpleChatClient.prompt().user(message).call().content());
+            return chatWithoutRag(message);
         }
+        return chatWithRag(message, userId);
+    }
 
+    /**
+     * Простой вызов LLM без advisors (блок 1 доклада).
+     *
+     * @param message текст вопроса
+     * @return ответ
+     */
+    private ChatResponse chatWithoutRag(String message) {
+        return new ChatResponse(chatClient.prompt().user(message).call().content());
+    }
+
+    /**
+     * RAG-чат: system prompt, память, логирование, QuestionAnswerAdvisor.
+     *
+     * @param message текст вопроса
+     * @param userId  идентификатор пользователя для памяти (может быть null)
+     * @return ответ
+     */
+    private ChatResponse chatWithRag(String message, String userId) {
         SearchConfigDto config = searchConfigService.getConfig();
         SearchRequest searchRequest = SearchRequest.builder()
                 .similarityThreshold(config.similarityThreshold())
@@ -58,9 +84,14 @@ public class RagChatService {
                 .build();
 
         var prompt = chatClient.prompt()
-                .advisors(QuestionAnswerAdvisor.builder(vectorStore)
-                        .searchRequest(searchRequest)
-                        .build())
+                .system(RetreatConfig.SYSTEM_PROMPT)
+                .advisors(
+                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+                        loggingAdvisor,
+                        QuestionAnswerAdvisor.builder(vectorStore)
+                                .searchRequest(searchRequest)
+                                .build()
+                )
                 .user(message);
 
         if (userId != null && !userId.isBlank()) {

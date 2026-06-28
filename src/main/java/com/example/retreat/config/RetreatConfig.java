@@ -1,8 +1,6 @@
 package com.example.retreat.config;
 
-import com.example.retreat.advisor.LoggingAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
@@ -41,34 +39,13 @@ public class RetreatConfig {
     }
 
     /**
-     * ChatClient с памятью и логированием для RAG-чата.
-     *
-     * @param chatModel      модель OpenAI
-     * @param chatMemory     память диалога
-     * @param loggingAdvisor логирование prompt
-     * @return настроенный ChatClient
-     */
-    @Bean
-    ChatClient chatClient(ChatModel chatModel,
-                          ChatMemory chatMemory,
-                          LoggingAdvisor loggingAdvisor) {
-        return ChatClient.builder(chatModel)
-                .defaultSystem(SYSTEM_PROMPT)
-                .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
-                        loggingAdvisor
-                )
-                .build();
-    }
-
-    /**
-     * Простой ChatClient без advisors — для блока 1 (введение).
+     * Базовый ChatClient без advisors — настройки на уровне сервиса.
      *
      * @param chatModel модель OpenAI
-     * @return ChatClient без RAG и памяти
+     * @return ChatClient
      */
     @Bean
-    ChatClient simpleChatClient(ChatModel chatModel) {
+    ChatClient chatClient(ChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
     }
 }
