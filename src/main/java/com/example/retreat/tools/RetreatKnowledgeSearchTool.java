@@ -1,6 +1,5 @@
 package com.example.retreat.tools;
 
-import com.example.retreat.rag.SearchConfigService;
 import com.example.retreat.rag.metadata.SearchableMetadataService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,6 +12,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,20 +24,24 @@ public class RetreatKnowledgeSearchTool {
     private static final Logger log = LoggerFactory.getLogger(RetreatKnowledgeSearchTool.class);
 
     private final VectorStore vectorStore;
-    private final SearchConfigService searchConfigService;
     private final SearchableMetadataService metadataService;
+    private final double similarityThreshold;
+    private final int topK;
 
     /**
-     * @param vectorStore       pgvector store
-     * @param searchConfigService настройки поиска
-     * @param metadataService   каталог metadata
+     * @param vectorStore         pgvector store
+     * @param metadataService     каталог metadata
+     * @param similarityThreshold порог из application.yml
+     * @param topK                topK из application.yml
      */
     public RetreatKnowledgeSearchTool(VectorStore vectorStore,
-                                      SearchConfigService searchConfigService,
-                                      SearchableMetadataService metadataService) {
+                                      SearchableMetadataService metadataService,
+                                      @Value("${retreat.search.similarity-threshold}") double similarityThreshold,
+                                      @Value("${retreat.search.top-k}") int topK) {
         this.vectorStore = vectorStore;
-        this.searchConfigService = searchConfigService;
         this.metadataService = metadataService;
+        this.similarityThreshold = similarityThreshold;
+        this.topK = topK;
     }
 
     /**
@@ -56,17 +60,16 @@ public class RetreatKnowledgeSearchTool {
             Если не уверен в metadata — не передавай фильтр.
             """)
     public String searchRetreatKnowledge(
-            @ToolParam(description = "Текстовый запрос пользователя о ретрите") String query,
+            @ToolParam(description = "Полный текст вопроса пользователя, без сокращений") String query,
             @ToolParam(description = "Опционально: источник", required = false) String source,
             @ToolParam(description = "Опционально: тема", required = false) String topic) {
 
         log.info("[Tool] searchRetreatKnowledge query={}, source={}, topic={}", query, source, topic);
 
-        var config = searchConfigService.getConfig();
         var builder = SearchRequest.builder()
                 .query(query)
-                .similarityThreshold(config.similarityThreshold())
-                .topK(config.topK());
+                .similarityThreshold(similarityThreshold)
+                .topK(topK);
 
         Filter.Expression filter = buildFilter(source, topic);
         if (filter != null) {

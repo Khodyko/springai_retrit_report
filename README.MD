@@ -64,13 +64,6 @@ Content-Type: application/json
 GET http://localhost:8080/api/metadata/searchable
 ```
 
-Текущий порог similarity:
-
-```http
-### Блок 2: текущий порог similarity из application.yml
-GET http://localhost:8080/api/admin/search-config
-```
-
 Загрузка документов в pgvector (live на сцене):
 
 ```http
@@ -94,60 +87,6 @@ Content-Type: application/json
 
 ```http
 ### Блок 2: вопрос не про ретрит — высокий порог, контекст не попадает
-POST http://localhost:8080/api/chat
-Content-Type: application/json
-
-{
-  "message": "Что такое SOLID?"
-}
-```
-
----
-
-### Блок 2b. Настройка точности поиска (Spring AI + application.yml)
-
-Понизить порог similarity (демо «freud»):
-
-```http
-### Блок 2b: понизить порог similarity (демо «freud»)
-PUT http://localhost:8080/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.35,
-  "topK": 8
-}
-```
-
-Тот же off-topic вопрос — слабый контекст проходит:
-
-```http
-### Блок 2b: тот же off-topic вопрос — низкий порог пропускает слабый контекст
-POST http://localhost:8080/api/chat
-Content-Type: application/json
-
-{
-  "message": "Что такое SOLID?"
-}
-```
-
-Вернуть строгий порог:
-
-```http
-### Блок 2b: вернуть строгий порог
-PUT http://localhost:8080/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.78,
-  "topK": 4
-}
-```
-
-Off-topic снова — честный отказ:
-
-```http
-### Блок 2b: off-topic снова — честный отказ без галлюцинаций
 POST http://localhost:8080/api/chat
 Content-Type: application/json
 
@@ -290,23 +229,12 @@ X-User-Id: bob
 
 ### Блок 6 / 7. Кейсы улучшения качества поиска (Spring AI)
 
-См. [PLAN.MD — Кейсы настройки качества поиска](PLAN.MD#кейсы-настройки-качества-поиска-spring-ai).
+Порог `similarity-threshold` и `top-k` — в `application.yml` (`retreat.search.*`).
 
-**Кейс A** — увеличить topK:
-
-```http
-### Кейс A: увеличить topK — больше контекста, риск шума
-PUT http://localhost:8080/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.78,
-  "topK": 12
-}
-```
+**Кейс A** — широкий контекст:
 
 ```http
-### Кейс A: запрос с увеличенным topK
+### Кейс A: запрос про утренние активности
 POST http://localhost:8080/api/chat
 Content-Type: application/json
 
@@ -315,21 +243,10 @@ Content-Type: application/json
 }
 ```
 
-**Кейс B** — уменьшить topK:
+**Кейс B** — тот же вопрос, другие настройки в yml:
 
 ```http
-### Кейс B: уменьшить topK — точнее, но можно потерять детали
-PUT http://localhost:8080/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.78,
-  "topK": 2
-}
-```
-
-```http
-### Кейс B: запрос с уменьшенным topK
+### Кейс B: тот же запрос (измените top-k в application.yml)
 POST http://localhost:8080/api/chat
 Content-Type: application/json
 
@@ -338,18 +255,7 @@ Content-Type: application/json
 }
 ```
 
-**Кейс C** — строгий порог + agent:
-
-```http
-### Кейс C: строгий порог + metadata через agent (лучшее качество)
-PUT http://localhost:8080/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.80,
-  "topK": 4
-}
-```
+**Кейс C** — agent + metadata:
 
 ```http
 ### Кейс C: вопрос про правила ретрита через agent

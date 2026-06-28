@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,8 @@ public class DocumentLoaderService {
      * @return число загруженных чанков
      */
     public int loadDocuments() throws IOException {
+        vectorStore.delete(new FilterExpressionBuilder().gte("retreatYear", 0).build());
+
         Resource[] resources = new PathMatchingResourcePatternResolver()
                 .getResources("classpath:documents/retreat/*.md");
 

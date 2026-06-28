@@ -3,14 +3,13 @@ package com.example.retreat.service;
 import com.example.retreat.advisor.LoggingAdvisor;
 import com.example.retreat.config.RetreatConfig;
 import com.example.retreat.dto.ChatResponse;
-import com.example.retreat.dto.SearchConfigDto;
-import com.example.retreat.rag.SearchConfigService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,25 +22,29 @@ public class RagChatService {
     private final ChatMemory chatMemory;
     private final LoggingAdvisor loggingAdvisor;
     private final VectorStore vectorStore;
-    private final SearchConfigService searchConfigService;
+    private final double similarityThreshold;
+    private final int topK;
 
     /**
-     * @param chatClient          базовый ChatClient
-     * @param chatMemory          память диалога
-     * @param loggingAdvisor      логирование prompt
-     * @param vectorStore         pgvector store
-     * @param searchConfigService настройки similarity
+     * @param chatClient            базовый ChatClient
+     * @param chatMemory            память диалога
+     * @param loggingAdvisor        логирование prompt
+     * @param vectorStore           pgvector store
+     * @param similarityThreshold   порог из application.yml
+     * @param topK                  topK из application.yml
      */
     public RagChatService(ChatClient chatClient,
                           ChatMemory chatMemory,
                           LoggingAdvisor loggingAdvisor,
                           VectorStore vectorStore,
-                          SearchConfigService searchConfigService) {
+                          @Value("${retreat.search.similarity-threshold}") double similarityThreshold,
+                          @Value("${retreat.search.top-k}") int topK) {
         this.chatClient = chatClient;
         this.chatMemory = chatMemory;
         this.loggingAdvisor = loggingAdvisor;
         this.vectorStore = vectorStore;
-        this.searchConfigService = searchConfigService;
+        this.similarityThreshold = similarityThreshold;
+        this.topK = topK;
     }
 
     /**
@@ -77,10 +80,9 @@ public class RagChatService {
      * @return ответ
      */
     private ChatResponse chatWithRag(String message, String userId) {
-        SearchConfigDto config = searchConfigService.getConfig();
         SearchRequest searchRequest = SearchRequest.builder()
-                .similarityThreshold(config.similarityThreshold())
-                .topK(config.topK())
+                .similarityThreshold(similarityThreshold)
+                .topK(topK)
                 .build();
 
         var prompt = chatClient.prompt()

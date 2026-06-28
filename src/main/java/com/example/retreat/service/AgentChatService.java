@@ -20,7 +20,7 @@ public class AgentChatService {
      */
     public AgentChatService(ChatModel chatModel, RetreatKnowledgeSearchTool searchTool) {
         this.agentChatClient = ChatClient.builder(chatModel)
-                .defaultSystem(RetreatConfig.SYSTEM_PROMPT)
+                .defaultSystem(RetreatConfig.AGENT_SYSTEM_PROMPT)
                 .defaultTools(searchTool)
                 .build();
     }

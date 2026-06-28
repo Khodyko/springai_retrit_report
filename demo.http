@@ -24,9 +24,6 @@ Content-Type: application/json
 ### Блок 2: каталог searchable metadata (Liquibase)
 GET {{baseUrl}}/api/metadata/searchable
 
-### Блок 2: текущий порог similarity из application.yml
-GET {{baseUrl}}/api/admin/search-config
-
 ### Блок 2: загрузить документы + metadata чанков в pgvector
 POST {{baseUrl}}/api/admin/load
 
@@ -39,44 +36,6 @@ Content-Type: application/json
 }
 
 ### Блок 2: вопрос не про ретрит — высокий порог, контекст не попадает
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Что такое SOLID?"
-}
-
-###############################################################################
-# Блок 2b. Настройка точности поиска
-###############################################################################
-
-### Блок 2b: понизить порог similarity (демо «freud»)
-PUT {{baseUrl}}/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.35,
-  "topK": 8
-}
-
-### Блок 2b: тот же off-topic вопрос — низкий порог пропускает слабый контекст
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Что такое SOLID?"
-}
-
-### Блок 2b: вернуть строгий порог
-PUT {{baseUrl}}/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.78,
-  "topK": 4
-}
-
-### Блок 2b: off-topic снова — честный отказ без галлюцинаций
 POST {{baseUrl}}/api/chat
 Content-Type: application/json
 
@@ -175,50 +134,15 @@ X-User-Id: bob
 }
 
 ###############################################################################
-# Блок 6 / 7. Кейсы улучшения качества поиска
+# Блок 6 / 7. Кейсы улучшения качества поиска (retreat.search.* в application.yml)
 ###############################################################################
 
-### Кейс A: увеличить topK — больше контекста, риск шума
-PUT {{baseUrl}}/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.78,
-  "topK": 12
-}
-
-### Кейс A: запрос с увеличенным topK
+### Кейс A: запрос про утренние активности
 POST {{baseUrl}}/api/chat
 Content-Type: application/json
 
 {
   "message": "Расскажи про все утренние активности"
-}
-
-### Кейс B: уменьшить topK — точнее, но можно потерять детали
-PUT {{baseUrl}}/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.78,
-  "topK": 2
-}
-
-### Кейс B: запрос с уменьшенным topK
-POST {{baseUrl}}/api/chat
-Content-Type: application/json
-
-{
-  "message": "Расскажи про все утренние активности"
-}
-
-### Кейс C: строгий порог + metadata через agent
-PUT {{baseUrl}}/api/admin/search-config
-Content-Type: application/json
-
-{
-  "similarityThreshold": 0.80,
-  "topK": 4
 }
 
 ### Кейс C: вопрос про правила ретрита через agent
